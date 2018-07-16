@@ -1,1 +1,679 @@
 
+<!--
+Name :      Vahini Nareddy 
+Program1 : This program creates platforms as groups and player collects all the sprites generated
+           and updates score by using phaser. Timer is also set within which player has to play. Death counter
+           gets updated as the player hits the bomb. 
+
+
+ -->
+
+
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 10</title>
+    <script src="assets/phaser.min.js"></script>
+    <script src="easytimer.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var player;
+var stars;
+var bombs;
+var gems;
+var platforms;
+var cursors;
+var score = 0;
+var gameOver = false;
+var scoreText;
+var count=0;
+var timeText;
+var game = new Phaser.Game(config);
+var deathcounter=0;
+var death;
+var time;
+var gamo;
+var timer=0;
+var dias;
+var track=0;
+var r=0;
+var fa;
+var chicks;
+var a=Math.floor(Math.random() * 3);
+var b;
+var timer = new Timer();
+
+// Function used to preload the images and audio as the game starts
+
+function preload ()
+{
+
+    //https://github.com/photonstorm/phaser-examples/tree/master/examples/assets/sprites
+
+    this.load.image('sky', 'assets/sky.png');
+    this.load.image('hd', 'assets/hotdog.png');
+    //loaded to play audio (https://phaser.io/examples/v2/audio/sound-complete)
+    this.load.audio('music', 'assets/music.mp3');
+    this.load.audio('gameover', 'assets/gameover.mp3');
+    this.load.audio('tui', 'assets/tui.mp3');
+    this.load.image('dia', 'assets/diamond.png');
+    this.load.image('ground', 'assets/platform.png');
+    this.load.image('star', 'assets/star.png');
+    this.load.image('gem', 'assets/mush.png');
+    this.load.image('coin', 'assets/coins.png');
+    this.load.image('chick', 'assets/chick.png');
+    this.load.image('bomb', 'assets/bomb.png');
+    this.load.image('fa', 'assets/shinyball.png');
+    this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+    this.load.spritesheet('mario', 'assets/hero.png', { frameWidth: 45.25, frameHeight: 64 });
+}
+
+//Creates platforms and groups
+
+function create ()
+{
+    //  A simple background for our game
+    this.add.image(400, 300, 'sky');
+
+    //  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = this.physics.add.staticGroup();
+
+    //  Here we create the ground.
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+
+    //  Now let's create some ledges
+    platforms.create(600, 400, 'ground');
+    platforms.create(50, 250, 'ground');
+    platforms.create(750, 220, 'ground');
+
+    // The player and its settings
+    player = this.physics.add.sprite(100, 450, 'mario');
+
+    player.body.setSize(player.width-20, player.height);
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.setBounce(0.2);
+    player.setCollideWorldBounds(true);
+    //start timer obtained from easytimer.js
+    timer.start({precision: 'secondTenths'});
+    // Add AFTER background, or time will be hidden
+    timeText = this.add.text(520, 16, "00:00:00", { fontSize: '32px', fill: '#000' });
+
+    //  Our player animations, turning, walking left and walking right.
+    this.anims.create({
+        key: 'left',
+        frames: this.anims.generateFrameNumbers('mario', { start: 4, end: 7 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'turn',
+        frames: [ { key: 'mario', frame: 0 } ],
+        frameRate: 20
+    });
+
+    this.anims.create({
+        key: 'right',
+        frames: this.anims.generateFrameNumbers('mario', { start: 8, end: 11 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    //  Input Events
+    cursors = this.input.keyboard.createCursorKeys();
+  
+    //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
+    
+    
+
+    bombs = this.physics.add.group();
+    gems = this.physics.add.group();
+    fa = this.physics.add.group();
+    chicks = this.physics.add.group();
+  
+    b = this.physics.add.group();
+    //  The score
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    death = this.add.text(400, 500, 'deathcounter: 0', { fontSize: '32px', fill: '#000' });
+    
+   // time = this.add.text(400, 16, 'timer: 0', { fontSize: '32px', fill: '#000' });
+
+    //  Collide the player and the stars with the platforms
+    this.physics.add.collider(player, platforms);
+   
+    this.physics.add.collider(bombs, platforms);
+    this.physics.add.collider(b, platforms);
+    this.physics.add.collider(gems, platforms);
+    this.physics.add.collider(fa, platforms);
+    this.physics.add.collider(chicks, platforms);
+    
+
+    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    
+    
+
+    this.physics.add.collider(player, bombs, hitBomb, null, this);
+    this.physics.add.collider(player, b, hitb, null, this);
+    this.physics.add.collider(player, fa, hitfa, null, this);
+    this.physics.add.collider(player, gems, hitgem, null, this);
+    this.physics.add.collider(player, chicks, hitchick, null, this);
+    //set timer
+    gameTimer();
+}
+function gameTimer() {
+    time += 1;
+   
+    m = Math.floor(time / 60);
+
+    if(m > 0){
+        time -= m * 60;
+    }
+ 
+
+    s = time;
+    //console.log(time.toString());
+
+    timeText.setText(padTime(m)+":"+padTime(s));
+    var t = setTimeout(gameTimer, 1000);
+   // console.log(t);
+}
+function padTime(i) {
+    if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+    return i;
+}
+function updateClock(){
+
+    if(track == 0 ){
+        timeText.setText("01:"+timer.getTimeValues().toString(['seconds']));
+        
+    }
+   
+  //  console.log(timer.getTimeValues().toString(['minutes'])+3);
+    //console.log(timer.getTimeValues().toString(['seconds'])+60);
+   //console.log(timer.getTimeValues().toString(['minutes']));
+
+   //Setting up time for counting down to 0 from 2
+    if(track == 0 && timer.getTimeValues().toString(['seconds']) == '01' ){
+       /*  gameOver=true;
+        let sound2=this.sound.add('gameover');
+    sound2.play(); */
+    console.log("here1");
+   track=1;
+    }
+    
+    /* if(track == 0 && timer.getTimeValues().toString(['seconds']) == '02' ){
+    gameOver=true;
+        let sound2=this.sound.add('gameover');
+    sound2.play(); 
+console.log("here0");
+     
+    } */
+   
+    if(track == 1 && timer.getTimeValues().toString(['seconds']) == '01' ){
+       /*  gameOver=true;
+        let sound2=this.sound.add('gameover');
+    sound2.play(); */
+    console.log("here1");
+    //track=2;
+    }
+
+    if(track == 1){
+        timeText.setText("00:"+timer.getTimeValues().toString(['seconds']));
+    }
+  
+     if( track == 1 && timer.getTimeValues().toString(['seconds']) == '02'){
+      // gameOver=true;
+       track =-1;
+    }
+    if(track == -1 && timer.getTimeValues().toString(['seconds']) == '01'){
+        gameOver=true;
+        timeText.setText("00:00");
+    }
+   
+}
+function update ()
+{
+   //Randomly selects the spirits and display on the platforms.
+    if(a==0){
+        console.log(a);
+    dias = this.physics.add.group({
+        key: 'dia',
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
+    });
+
+    dias.children.iterate(function (child) {
+
+        //  Give each star a slightly different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    });
+    this.physics.add.collider(dias, platforms);
+    this.physics.add.overlap(player, dias, collectdias, null, this);
+    a=-1;
+  //  console.log(a+"sjh");
+    //r=-1;
+}
+if(a==1){
+    //    console.log(a);
+    gems = this.physics.add.group({
+        key: 'gem',
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
+    });
+
+    gems.children.iterate(function (child) {
+
+        //  Give each star a slightly different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    });
+    this.physics.add.collider(gems, platforms);
+    this.physics.add.overlap(player, gems, collectgems, null, this);
+   a=-1;
+   // console.log(a+"sjh");
+    //r=-1;
+}
+
+if(a==2){
+   ////     console.log(a);
+    chicks = this.physics.add.group({
+        key: 'chick',
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
+    });
+
+    chicks.children.iterate(function (child) {
+
+        //  Give each star a slightly different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    });
+    this.physics.add.collider(chicks, platforms);
+    this.physics.add.overlap(player, chicks, collectchicks, null, this);
+   a=-1;
+   // console.log(a+"sjh");
+    //r=-1;
+}
+if(a==3){
+   ////     console.log(a);
+    stars = this.physics.add.group({
+        key: 'star',
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
+    });
+
+    stars.children.iterate(function (child) {
+
+        //  Give each star a slightly different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    });
+    this.physics.add.collider(stars, platforms);
+    this.physics.add.overlap(player, stars, collectStar, null, this);
+   a=-1;
+   // console.log(a+"sjh");
+    //r=-1;
+}
+
+// Randomly one item bounces in between
+
+    count=count+10;
+    if(count==10000 && r==0){
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var gem = b.create(x, 16, 'hd');
+        gem.setBounce(1);
+        gem.setCollideWorldBounds(true);
+        gem.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        gem.allowGravity = false;
+        count=0;
+      
+        r=1;
+    }
+    if(count==10000 && r==1){
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var fas = fa.create(x, 16, 'fa');
+        fas.setBounce(1);
+        fas.setCollideWorldBounds(true);
+        fas.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        fas.allowGravity = false;
+        count=0;
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        r=2;
+    }
+    if(count==10000 && r==2){
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var ch = chicks.create(x, 16, 'fa');
+        ch.setBounce(1);
+        ch.setCollideWorldBounds(true);
+        ch.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        ch.allowGravity = false;
+        count=0;
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        r=0;
+    }
+  
+  
+  //  console.log(r);
+   
+    // If gameover is set to true then it displays Game Over on screen
+    if (gameOver)
+    {
+
+        gamo= this.add.text(260, 250, 'GAME OVER', { fontSize: '32px', fill: '#000' });
+        timeText.setText("00:00");
+        return;
+    }
+
+    if (cursors.left.isDown)
+    {
+        player.setVelocityX(-160);
+
+        player.anims.play('left', true);
+    }
+    else if (cursors.right.isDown)
+    {
+        player.setVelocityX(160);
+
+        player.anims.play('right', true);
+    }
+    else
+    {
+        player.setVelocityX(0);
+
+        player.anims.play('turn');
+    }
+
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.setVelocityY(-330);
+    }
+    updateClock();
+}
+
+// Functions written to disable sprite after colliding with sprite
+
+function collectStar (player, star)
+{
+
+    // plays the music
+    let sound1=this.sound.add('music');
+    sound1.play();
+    star.disableBody(true, true);
+
+    //  Add and update the score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (stars.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+      /*   stars.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        }); */
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        a=Math.floor(Math.random() * 3);
+        console.log(a);
+       // r=2;
+      //  changecoin();
+    }
+   
+}
+
+// Functions written to disable sprite after colliding with sprite
+function collectdias (player, dia)
+{
+
+    // plays the music
+    let sound1=this.sound.add('music');
+    sound1.play();
+    dia.disableBody(true, true);
+
+    //  Add and update the score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (dias.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+      /*   dias.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        }); */
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        a=Math.floor(Math.random() * 3);
+        console.log(a);
+     //   console.log(Math.floor(Math.random() * 4)+"rand"); 
+       // r=1;
+      //  changecoin();
+    }
+   
+}
+
+// Functions written to disable sprite after colliding with sprite
+function collectchicks (player, chick)
+{
+    // plays the music
+    let sound1=this.sound.add('music');
+    sound1.play();
+    chick.disableBody(true, true);
+
+    //  Add and update the score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (chicks.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+      /*   dias.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        }); */
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        a=Math.floor(Math.random() * 3);
+        console.log(a);
+       // r=1;
+      //  changecoin();
+    }
+   
+}
+
+// Functions written to disable sprite after colliding with sprite
+
+function collectgems (player, gem)
+{
+    // plays the music
+    let sound1=this.sound.add('music');
+    sound1.play();
+    gem.disableBody(true, true);
+
+    //  Add and update the score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (gems.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+      /*   dias.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        }); */
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+        a=Math.floor(Math.random() * 4);
+        console.log(a);
+       // r=1;
+      //  changecoin();
+    }
+   
+}
+
+// Functions written to disable sprite after colliding with sprite
+function collectCoins (player, coin)
+{
+    coin.disableBody(true, true);
+
+    //  Add and update the score
+    score += 20;
+    scoreText.setText('Score: ' + score);
+
+    if (coins.countActive(true) === 0)
+    {
+        //  A new batch of stars to collect
+        coins.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        });
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+         //r=0;
+    }
+}
+
+//Special items hitting the player increases the score
+
+function hitBomb (player, bomb)
+{
+    //this.physics.pause();
+
+    player.setTint(0xff0000);
+
+   // player.setTint(0xffffff);
+
+    player.anims.play('turn');
+    deathcounter += 1;
+    score=0;
+    scoreText.setText('Score: ' + score);
+    death.setText('deathcounter: ' + deathcounter);
+    bomb.disableBody(true, true);
+
+    //gameOver = true;
+}
+//Special items hitting the player increases the score
+function hitgem (player, gem)
+{
+    let sound3=this.sound.add('tui');
+    sound3.play();
+    gem.disableBody(true, true);
+    score=score+50;
+    scoreText.setText('Score: ' + score);
+    player.setTint(0xff00ff);// https://phaser.io/examples/v2/sprites/sprite-tint
+}
+
+//Special items hitting the player increases the score
+
+function hitb (player, hd)
+{
+    let sound3=this.sound.add('tui');
+    sound3.play();
+    hd.disableBody(true, true);
+    score=score+50;
+    scoreText.setText('Score: ' + score);
+    player.setTint(0xff00ff); // https://phaser.io/examples/v2/sprites/sprite-tint
+}
+
+//Special items hitting the player increases the score
+function hitfa (player, fa)
+{
+    let sound4=this.sound.add('tui');
+    sound4.play();
+    fa.disableBody(true, true);
+    score=score+50;
+    scoreText.setText('Score: ' + score);
+    player.anims.play('turn');
+    player.setTint(0xff00ff);  // https://phaser.io/examples/v2/sprites/sprite-tint
+} 
+//Special items hitting the player increases the score
+function hitchick (player, ch)
+{
+    let sound5=this.sound.add('tui');
+    sound5.play();
+    ch.disableBody(true, true);
+    score=score+100;
+    scoreText.setText('Score: ' + score);
+    player.anims.play('turn');
+    player.setTint(0xfeffff);   // https://phaser.io/examples/v2/sprites/sprite-tint
+}
+
+</script>
+
+</body>
+</html>
